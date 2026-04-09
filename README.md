@@ -512,26 +512,26 @@ pip install numpy-minmax numpy-rms python-stretch \
 
 ## Troubleshooting
 
-### ❌ `CUDA out of memory`
+###  `CUDA memory`
 - Reduce batch size in `TrainingArguments` (e.g., `per_device_train_batch_size=8`).
 - Use gradient accumulation: `gradient_accumulation_steps=4`.
 - Enable `fp16=True` in `TrainingArguments` for mixed-precision training.
 
-### ❌ `ModuleNotFoundError: audiomentations`
+### Module: audiomentations`
 ```bash
 pip install audiomentations --no-deps
 pip install numpy-minmax numpy-rms python-stretch
 ```
 
-### ❌ `OSError: Can't load tokenizer for 'ai4bharat/IndicBERTv2-MLM-only'`
+### tokenizer for 'ai4bharat/IndicBERTv2-MLM-only'`
 - Ensure you are logged in to Hugging Face: `huggingface-cli login`
 - The model requires accepting terms on the Hugging Face model page.
 
-### ❌ Dataset path errors
-- Make sure `BASE_PATH` in `Config` points to the correct local directory.
+###  Dataset path 
+- Make `BASE_PATH` in `Config` points to the correct local directory.
 - On Kaggle, the path is automatically `/kaggle/input/hate-speech-detection-in-dravidian-languages/`.
 
-### ❌ `DtypeWarning` or empty DataFrame
+###  `DtypeWarning` or empty DataFrame
 - Verify CSV column names match `Transcript` and `Class Label Short`.
 - Check for extra spaces in column names: use `df.columns.str.strip()`.
 
