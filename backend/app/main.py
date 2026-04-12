@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from typing import Optional
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,7 +33,7 @@ def health() -> dict:
 async def predict(
     language: str = Form(...),
     text: str = Form(...),
-    audio: UploadFile | None = File(default=None),
+    audio: Optional[UploadFile] = File(default=None),
 ) -> dict:
     if not text.strip():
         raise HTTPException(status_code=400, detail="Text input is required.")

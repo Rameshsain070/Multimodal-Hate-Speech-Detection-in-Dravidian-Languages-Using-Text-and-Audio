@@ -3,7 +3,7 @@ from __future__ import annotations
 import io
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 import joblib
 import librosa
@@ -56,7 +56,7 @@ class MultimodalService:
         self._audio_models: Dict[str, AutoModelForAudioClassification] = {}
         self._meta_models: Dict[str, Optional[object]] = {}
 
-    def supported_languages(self) -> list[str]:
+    def supported_languages(self) -> List[str]:
         return list(LANGUAGE_CONFIGS.keys())
 
     def _language_config(self, language: str) -> LanguageConfig:
