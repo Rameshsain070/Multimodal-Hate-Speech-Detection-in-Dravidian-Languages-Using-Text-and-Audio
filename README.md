@@ -628,3 +628,74 @@ SOFTWARE.
 Made with ❤️ for the Dravidian NLP community
 
 </div>
+
+---
+
+## 🌍 Web App (Realtime + 3D UI)
+
+This repository now includes a deployable web application:
+
+- `backend/` → FastAPI inference API (uses your trained model files if present under `backend/models/<language>/`)
+- `frontend/` → modern 3D web UI (Three.js) for realtime prediction
+
+### Backend (API)
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Health check:
+
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+Prediction endpoint:
+
+- `POST /predict`
+- form-data fields:
+  - `language`: `tamil` | `telugu` | `malayalam`
+  - `text`: input text
+  - `audio`: optional audio file
+
+### Using your saved meta models
+
+If you exported LightGBM meta models from notebooks, place them like:
+
+```text
+backend/models/tamil/meta_lightgbm_tamil_from_eval_safe.joblib
+backend/models/telugu/meta_lightgbm_telugu_from_eval_safe.joblib
+backend/models/malayalam/meta_lightgbm_malayalam_from_eval_safe.joblib
+```
+
+The backend will auto-load these files and use them for fusion.
+
+### Frontend (3D UI)
+
+Serve frontend locally (any static server):
+
+```bash
+cd frontend
+python -m http.server 5500
+```
+
+Open `http://127.0.0.1:5500` and keep backend running at `http://127.0.0.1:8000`.
+
+### Deploy on your GitHub account
+
+Frontend is configured for GitHub Pages via:
+
+- `.github/workflows/deploy-frontend-pages.yml`
+
+To enable:
+
+1. Push this branch to your repository.
+2. In GitHub repo settings, open **Pages** and set source to **GitHub Actions**.
+3. Run the workflow (or push to `main` with frontend changes).
+4. Your UI will be hosted on `https://<your-username>.github.io/<repo-name>/`
+
+> Note: GitHub Pages is static hosting only. Keep FastAPI backend deployed on a backend host (Render/Railway/Hugging Face Spaces) and set its URL in the frontend input box.
