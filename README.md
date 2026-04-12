@@ -535,6 +535,13 @@ pip install numpy-minmax numpy-rms python-stretch
 - Verify CSV column names match `Transcript` and `Class Label Short`.
 - Check for extra spaces in column names: use `df.columns.str.strip()`.
 
+### Web app does not predict
+- Ensure backend is running and the frontend Backend URL points to `/predict`.
+- If frontend is on GitHub Pages, configure backend CORS for your Pages origin:
+  - `ALLOWED_ORIGINS=https://<username>.github.io`
+  - or use `ALLOWED_ORIGIN_REGEX` (defaults to a GitHub Pages origin pattern).
+- If error says backend is unreachable, use a public backend host URL (localhost will not work from deployed GitHub Pages).
+
 ---
 
 ## Contributing
@@ -651,6 +658,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 Optional backend environment variables:
 
 - `ALLOWED_ORIGINS` (comma-separated frontend origins; default: local dev origins)
+- `ALLOWED_ORIGIN_REGEX` (regex for dynamic origins; default: `^https://[a-zA-Z0-9-]+\\.github\\.io$`)
 - `MAX_AUDIO_BYTES` (upload limit in bytes; default: `10485760`)
 
 Health check:
