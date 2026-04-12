@@ -14,11 +14,14 @@ service = MultimodalService()
 MAX_AUDIO_BYTES = int(os.getenv("MAX_AUDIO_BYTES", str(10 * 1024 * 1024)))
 allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "http://127.0.0.1:5500,http://localhost:5500")
 allowed_origins = [origin.strip() for origin in allowed_origins_raw.split(",") if origin.strip()]
+allow_origin_regex = os.getenv("ALLOWED_ORIGIN_REGEX", r"^https://[a-zA-Z0-9-]+\.github\.io$").strip() or None
+allow_all_origins = "*" in allowed_origins
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
+    allow_origins=["*"] if allow_all_origins else allowed_origins,
+    allow_origin_regex=None if allow_all_origins else allow_origin_regex,
+    allow_credentials=not allow_all_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

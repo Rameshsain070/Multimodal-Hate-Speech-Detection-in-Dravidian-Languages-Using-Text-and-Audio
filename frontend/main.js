@@ -33,6 +33,26 @@ addEventListener("resize", () => {
 const form = document.getElementById("predict-form");
 const result = document.getElementById("result");
 const submitButton = document.getElementById("submit");
+const apiInput = document.getElementById("api-url");
+
+const DEFAULT_API_URL = "http://127.0.0.1:8000/predict";
+const storedApiUrl = localStorage.getItem("apiUrl");
+apiInput.value = storedApiUrl || apiInput.value || DEFAULT_API_URL;
+
+function normalizeApiUrl(rawUrl) {
+  const trimmed = rawUrl.trim();
+  if (!trimmed) {
+    throw new Error("Backend URL is required.");
+  }
+
+  const url = new URL(trimmed);
+  if (!url.pathname || url.pathname === "/") {
+    url.pathname = "/predict";
+  } else if (!url.pathname.endsWith("/predict")) {
+    url.pathname = `${url.pathname.replace(/\/$/, "")}/predict`;
+  }
+  return url.toString();
+}
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -40,10 +60,13 @@ form.addEventListener("submit", async (event) => {
   submitButton.textContent = "Predicting...";
 
   try {
-    const apiUrl = document.getElementById("api-url").value.trim();
+    const apiUrl = normalizeApiUrl(apiInput.value);
+    localStorage.setItem("apiUrl", apiUrl);
+    apiInput.value = apiUrl;
+
     const payload = new FormData();
     payload.append("language", document.getElementById("language").value);
-    payload.append("text", document.getElementById("text").value);
+    payload.append("text", document.getElementById("text").value.trim());
 
     const audioFile = document.getElementById("audio").files[0];
     if (audioFile) {
@@ -51,9 +74,16 @@ form.addEventListener("submit", async (event) => {
     }
 
     const response = await fetch(apiUrl, { method: "POST", body: payload });
-    const data = await response.json();
+    const contentType = response.headers.get("content-type") || "";
+    const data = contentType.includes("application/json") ? await response.json() : null;
+
     if (!response.ok) {
-      throw new Error(data.detail || "Prediction failed");
+      const raw = data ? JSON.stringify(data) : await response.text();
+      const reason = data?.detail || raw || `Request failed (${response.status})`;
+      throw new Error(reason);
+    }
+    if (!data) {
+      throw new Error("Backend returned an invalid response.");
     }
 
     const hate = data.prediction === 1;
@@ -69,8 +99,11 @@ form.addEventListener("submit", async (event) => {
       <p><b>Language:</b> ${data.language}</p>
     `;
   } catch (error) {
+    const message = error instanceof TypeError
+      ? "Could not reach backend API. Check backend URL, CORS, and server status."
+      : error.message;
     result.classList.remove("hidden");
-    result.innerHTML = `<h2>Error</h2><p>${error.message}</p>`;
+    result.innerHTML = `<h2>Error</h2><p>${message}</p>`;
   } finally {
     submitButton.disabled = false;
     submitButton.textContent = "Predict";
