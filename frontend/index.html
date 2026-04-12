@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dravidian Hate Speech Detector</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <canvas id="bg"></canvas>
+  <main class="app">
+    <h1>Multimodal Hate Speech Detector</h1>
+    <p class="subtitle">Tamil • Telugu • Malayalam · Realtime text/audio inference</p>
+
+    <form id="predict-form" class="card">
+      <label>Language
+        <select name="language" id="language" required>
+          <option value="tamil">Tamil</option>
+          <option value="telugu">Telugu</option>
+          <option value="malayalam">Malayalam</option>
+        </select>
+      </label>
+
+      <label>Text input
+        <textarea id="text" name="text" rows="5" placeholder="Type social-media text here..." required></textarea>
+      </label>
+
+      <label>Audio input (optional .wav/.mp3)
+        <input type="file" id="audio" name="audio" accept="audio/*" />
+      </label>
+
+      <label>Backend URL
+        <input type="url" id="api-url" value="http://127.0.0.1:8000/predict" />
+      </label>
+
+      <button type="submit" id="submit">Predict</button>
+    </form>
+
+    <section id="result" class="card result hidden"></section>
+  </main>
+
+  <script type="module" src="https://unpkg.com/three@0.176.0/build/three.module.js"></script>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
