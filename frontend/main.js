@@ -40,7 +40,9 @@ const realtimeModeInput = document.getElementById("realtime-mode");
 const progressText = document.getElementById("progress-text");
 const connectionStatus = document.getElementById("connection-status");
 
-const DEFAULT_API_URL = "http://127.0.0.1:8000/predict";
+const apiUrlFromQuery = new URLSearchParams(location.search).get("apiUrl");
+const apiUrlFromGlobalConfig = globalThis.APP_CONFIG?.apiUrl;
+const DEFAULT_API_URL = apiUrlFromQuery || apiUrlFromGlobalConfig || "http://127.0.0.1:8000/predict";
 const storedApiUrl = localStorage.getItem("apiUrl");
 apiInput.value = storedApiUrl || apiInput.value || DEFAULT_API_URL;
 

@@ -537,9 +537,11 @@ pip install numpy-minmax numpy-rms python-stretch
 
 ### Web app does not predict
 - Ensure backend is running and the frontend Backend URL points to `/predict`.
+- If request is long-running, enable frontend "real-time job mode" (uses `/predict/jobs` polling API).
 - If frontend is on GitHub Pages, configure backend CORS for your Pages origin:
   - `ALLOWED_ORIGINS=https://<username>.github.io`
   - or use `ALLOWED_ORIGIN_REGEX` (defaults to a GitHub Pages origin pattern).
+- If predictions time out, increase `PREDICT_TIMEOUT_SECONDS` and/or disable `WARMUP_ALL_MODELS`.
 - If error says backend is unreachable, use a public backend host URL (localhost will not work from deployed GitHub Pages).
 
 ---
@@ -645,6 +647,16 @@ This repository now includes a deployable web application:
 - `backend/` → FastAPI inference API (uses your trained model files if present under `backend/models/<language>/`)
 - `frontend/` → modern 3D web UI (Three.js) for realtime prediction
 
+### Supported production models
+
+Each language exposes all 6 trained base variants and returns both per-model outputs and fused output.
+
+| Language | Text models | Audio models |
+|---|---|---|
+| Tamil | `indicbert`, `xlm-r`, `mbert` | `wav2vec2`, `wavlm`, `mms` |
+| Telugu | `indicbert`, `xlm-r`, `mbert` | `wav2vec2`, `wavlm`, `mms` |
+| Malayalam | `indicbert`, `xlm-r`, `mbert` | `wav2vec2`, `wavlm`, `mms` |
+
 ### Backend (API)
 
 ```bash
@@ -660,6 +672,9 @@ Optional backend environment variables:
 - `ALLOWED_ORIGINS` (comma-separated frontend origins; default: local dev origins)
 - `ALLOWED_ORIGIN_REGEX` (regex for dynamic origins; default: `^https://[a-zA-Z0-9-]+\\.github\\.io$`)
 - `MAX_AUDIO_BYTES` (upload limit in bytes; default: `10485760`)
+- `PREDICT_TIMEOUT_SECONDS` (per-request timeout; default: `120`)
+- `WARMUP_MODELS` (`true|false`, warm default models at startup; default: `true`)
+- `WARMUP_ALL_MODELS` (`true|false`, warm all variants at startup; default: `false`)
 
 Health check:
 
@@ -672,8 +687,24 @@ Prediction endpoint:
 - `POST /predict`
 - form-data fields:
   - `language`: `tamil` | `telugu` | `malayalam`
-  - `text`: input text
+  - `text`: optional input text
   - `audio`: optional audio file
+  - `text_models`: optional (`default`, `all`, or comma-separated keys like `xlm-r,mbert`)
+  - `audio_models`: optional (`default`, `all`, or comma-separated keys like `wav2vec2,mms`)
+
+At least one modality (`text` or `audio`) is required.
+
+Realtime/polling endpoints:
+
+- `POST /predict/jobs` → creates async prediction job (same form-data as `/predict`)
+- `GET /predict/jobs/{job_id}` → returns `queued` | `running` | `completed` | `failed` and result/error
+- `GET /models` → returns language-wise model catalog and default selections
+
+Response highlights from `/predict`:
+
+- fused prediction: `prediction`, `label`, `confidence`, `hate_probability`, `fusion_method`
+- model usage: `selected_models`, `used_text`, `used_audio`
+- per-model outputs: `model_outputs.text` and `model_outputs.audio`
 
 ### Using your saved meta models
 
@@ -698,6 +729,13 @@ python -m http.server 5500
 
 Open `http://127.0.0.1:5500` and keep backend running at `http://127.0.0.1:8000`.
 
+Frontend backend URL configuration priority:
+
+1. `?apiUrl=<BACKEND_PREDICT_URL>` query parameter
+2. `frontend/config.js` via `window.APP_CONFIG.apiUrl`
+3. Saved value from the UI (localStorage)
+4. Fallback default: `http://127.0.0.1:8000/predict`
+
 ### Deploy on your GitHub account
 
 Frontend is configured for GitHub Pages via:
@@ -711,4 +749,4 @@ To enable:
 3. Run the workflow (or push to `main` with frontend changes).
 4. Your UI will be hosted on `https://<your-username>.github.io/<repo-name>/`
 
-> Note: GitHub Pages is static hosting only. Keep FastAPI backend deployed on a backend host (Render/Railway/Hugging Face Spaces) and set its URL in the frontend input box.
+> Note: GitHub Pages is static hosting only. Keep FastAPI backend deployed on a backend host (Render/Railway/Hugging Face Spaces) and set backend URL in `frontend/config.js`, query param, or UI input.
