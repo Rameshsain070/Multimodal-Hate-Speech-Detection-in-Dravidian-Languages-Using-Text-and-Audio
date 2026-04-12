@@ -658,7 +658,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 Optional backend environment variables:
 
 - `ALLOWED_ORIGINS` (comma-separated frontend origins; default: local dev origins)
-- `ALLOWED_ORIGIN_REGEX` (regex for dynamic origins; default: `https://<username>.github.io`)
+- `ALLOWED_ORIGIN_REGEX` (regex for dynamic origins; default: `^https://[a-zA-Z0-9-]+\\.github\\.io$`)
 - `MAX_AUDIO_BYTES` (upload limit in bytes; default: `10485760`)
 
 Health check:
