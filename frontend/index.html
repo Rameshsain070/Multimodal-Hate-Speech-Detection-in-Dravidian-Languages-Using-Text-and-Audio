@@ -11,6 +11,7 @@
   <main class="app">
     <h1>Multimodal Hate Speech Detector</h1>
     <p class="subtitle">Tamil • Telugu • Malayalam · Realtime text/audio inference</p>
+    <p id="connection-status" class="connection unknown">Checking backend...</p>
 
     <form id="predict-form" class="card">
       <label>Language
@@ -22,7 +23,7 @@
       </label>
 
       <label>Text input
-        <textarea id="text" name="text" rows="5" placeholder="Type social-media text here..." required></textarea>
+        <textarea id="text" name="text" rows="5" placeholder="Type social-media text here..."></textarea>
       </label>
 
       <label>Audio input (optional .wav/.mp3)
@@ -33,6 +34,34 @@
         <input type="url" id="api-url" value="http://127.0.0.1:8000/predict" />
       </label>
 
+      <div class="grid">
+        <label>Text models
+          <select id="text-models">
+            <option value="default" selected>Default</option>
+            <option value="all">All</option>
+            <option value="xlm-r">XLM-R only</option>
+            <option value="indicbert">IndicBERT only</option>
+            <option value="mbert">mBERT only</option>
+          </select>
+        </label>
+
+        <label>Audio models
+          <select id="audio-models">
+            <option value="default" selected>Default</option>
+            <option value="all">All</option>
+            <option value="wav2vec2">Wav2Vec2 only</option>
+            <option value="wavlm">WavLM only</option>
+            <option value="mms">MMS only</option>
+          </select>
+        </label>
+      </div>
+
+      <label class="inline-label">
+        <input type="checkbox" id="realtime-mode" checked />
+        Use real-time job mode (recommended for large audio)
+      </label>
+
+      <p id="progress-text" class="progress hidden">Waiting...</p>
       <button type="submit" id="submit">Predict</button>
     </form>
 
