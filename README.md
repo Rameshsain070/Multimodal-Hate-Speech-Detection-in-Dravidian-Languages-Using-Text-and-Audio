@@ -673,6 +673,7 @@ Optional backend environment variables:
 - `ALLOWED_ORIGIN_REGEX` (regex for dynamic origins; default: `^https://[a-zA-Z0-9-]+\\.github\\.io$`)
 - `MAX_AUDIO_BYTES` (upload limit in bytes; default: `10485760`)
 - `PREDICT_TIMEOUT_SECONDS` (per-request timeout; default: `120`)
+- `JOB_TTL_SECONDS` (async job retention time; default: `3600`)
 - `WARMUP_MODELS` (`true|false`, warm default models at startup; default: `true`)
 - `WARMUP_ALL_MODELS` (`true|false`, warm all variants at startup; default: `false`)
 

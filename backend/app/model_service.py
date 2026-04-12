@@ -122,7 +122,11 @@ class MultimodalService:
     ) -> Dict[str, List[str]]:
         cfg = self._language_config(language)
 
-        def _normalize(selected: Optional[List[str]], available: Dict[str, str], defaults: List[str]) -> List[str]:
+        def _normalize_model_selection(
+            selected: Optional[List[str]],
+            available: Dict[str, str],
+            defaults: List[str],
+        ) -> List[str]:
             if selected is None:
                 return list(defaults)
             normalized = [item.strip().lower() for item in selected if item and item.strip()]
@@ -144,8 +148,8 @@ class MultimodalService:
             return deduped
 
         return {
-            "text": _normalize(text_model_keys, cfg.text_models, cfg.default_text_models),
-            "audio": _normalize(audio_model_keys, cfg.audio_models, cfg.default_audio_models),
+            "text": _normalize_model_selection(text_model_keys, cfg.text_models, cfg.default_text_models),
+            "audio": _normalize_model_selection(audio_model_keys, cfg.audio_models, cfg.default_audio_models),
         }
 
     def _get_text_stack(self, language: str, model_key: str):
@@ -273,6 +277,7 @@ class MultimodalService:
             audio_probs = np.mean(np.array(list(audio_outputs.values())), axis=0)
 
         fusion_method = "unknown"
+        fusion_warning: Optional[str] = None
         if text_probs is not None and audio_probs is not None:
             meta_model = self._get_meta_model(lang)
             if meta_model is not None:
@@ -280,9 +285,10 @@ class MultimodalService:
                     fused = np.hstack([text_probs, audio_probs]).reshape(1, -1)
                     hate_prob = float(meta_model.predict_proba(fused)[0][1])
                     fusion_method = "meta-model"
-                except Exception:
+                except (AttributeError, IndexError, TypeError, ValueError) as exc:
                     hate_prob = float((text_probs[1] + audio_probs[1]) / 2)
                     fusion_method = "text-audio-mean-fallback"
+                    fusion_warning = f"Meta-model fallback used: {exc}"
             else:
                 hate_prob = float((text_probs[1] + audio_probs[1]) / 2)
                 fusion_method = "text-audio-mean"
@@ -315,7 +321,7 @@ class MultimodalService:
             },
         }
 
-        return {
+        response = {
             "language": lang,
             "prediction": pred,
             "label": LABELS[pred],
@@ -327,3 +333,6 @@ class MultimodalService:
             "selected_models": selected,
             "model_outputs": model_outputs,
         }
+        if fusion_warning is not None:
+            response["fusion_warning"] = fusion_warning
+        return response

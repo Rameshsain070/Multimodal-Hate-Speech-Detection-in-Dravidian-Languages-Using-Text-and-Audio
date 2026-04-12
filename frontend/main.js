@@ -43,6 +43,8 @@ const connectionStatus = document.getElementById("connection-status");
 const apiUrlFromQuery = new URLSearchParams(location.search).get("apiUrl");
 const apiUrlFromGlobalConfig = globalThis.APP_CONFIG?.apiUrl;
 const DEFAULT_API_URL = apiUrlFromQuery || apiUrlFromGlobalConfig || "http://127.0.0.1:8000/predict";
+// 120 attempts × 1 second = 2 minutes, aligned with backend default timeout.
+const MAX_POLL_ATTEMPTS = 120;
 const storedApiUrl = localStorage.getItem("apiUrl");
 apiInput.value = storedApiUrl || apiInput.value || DEFAULT_API_URL;
 
@@ -119,8 +121,7 @@ async function checkBackendHealth() {
 }
 
 async function pollJob(jobUrl) {
-  const maxAttempts = 120;
-  for (let i = 0; i < maxAttempts; i += 1) {
+  for (let pollAttempt = 0; pollAttempt < MAX_POLL_ATTEMPTS; pollAttempt += 1) {
     const response = await fetch(jobUrl);
     const payload = await response.json();
     if (!response.ok) {

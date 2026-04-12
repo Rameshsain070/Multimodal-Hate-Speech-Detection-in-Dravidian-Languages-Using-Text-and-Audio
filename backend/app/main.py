@@ -18,12 +18,17 @@ app = FastAPI(title="Dravidian Multimodal Hate Speech API", version="1.0.0")
 service = MultimodalService()
 MAX_AUDIO_BYTES = int(os.getenv("MAX_AUDIO_BYTES", str(10 * 1024 * 1024)))
 PREDICT_TIMEOUT_SECONDS = int(os.getenv("PREDICT_TIMEOUT_SECONDS", "120"))
+JOB_TTL_SECONDS = int(os.getenv("JOB_TTL_SECONDS", "3600"))
 WARMUP_MODELS = os.getenv("WARMUP_MODELS", "true").strip().lower() in {"1", "true", "yes", "on"}
 WARMUP_ALL_MODELS = os.getenv("WARMUP_ALL_MODELS", "false").strip().lower() in {"1", "true", "yes", "on"}
 allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "http://127.0.0.1:5500,http://localhost:5500")
 allowed_origins = [origin.strip() for origin in allowed_origins_raw.split(",") if origin.strip()]
 allow_origin_regex = os.getenv("ALLOWED_ORIGIN_REGEX", r"^https://[a-zA-Z0-9-]+\.github\.io$").strip() or None
 allow_all_origins = "*" in allowed_origins
+# In-memory store is intentionally simple for single-instance deployments.
+# Job state is lost on process restart and should be replaced with a persistent/shared
+# store for multi-instance production deployments. TTL cleanup is included to
+# avoid unbounded in-memory growth.
 job_store: Dict[str, dict] = {}
 
 app.add_middleware(
@@ -45,6 +50,24 @@ def _parse_model_keys(raw_value: Optional[str]) -> Optional[list[str]]:
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _cleanup_expired_jobs() -> None:
+    now = datetime.now(timezone.utc)
+    expired_ids = []
+    for job_id, job in job_store.items():
+        updated_at = job.get("updated_at")
+        if not updated_at:
+            continue
+        try:
+            updated_at_dt = datetime.fromisoformat(updated_at)
+        except ValueError:
+            continue
+        age_seconds = (now - updated_at_dt).total_seconds()
+        if age_seconds >= JOB_TTL_SECONDS:
+            expired_ids.append(job_id)
+    for job_id in expired_ids:
+        job_store.pop(job_id, None)
 
 
 async def _predict_with_limits(
@@ -81,6 +104,7 @@ def health() -> dict:
         "status": "ok",
         "languages": service.supported_languages(),
         "timeout_seconds": PREDICT_TIMEOUT_SECONDS,
+        "job_ttl_seconds": JOB_TTL_SECONDS,
         "warmup_models": WARMUP_MODELS,
         "warmup_all_models": WARMUP_ALL_MODELS,
     }
@@ -136,6 +160,7 @@ async def predict_job(
     text_models: Optional[str] = Form(default=None),
     audio_models: Optional[str] = Form(default=None),
 ) -> JSONResponse:
+    _cleanup_expired_jobs()
     audio_bytes = await audio.read() if audio is not None else None
     if audio_bytes == b"":
         audio_bytes = None
@@ -170,9 +195,9 @@ async def predict_job(
             )
             job_store[job_id]["status"] = "completed"
             job_store[job_id]["result"] = result
-        except Exception as exc:  # pragma: no cover
+        except Exception:  # pragma: no cover
             job_store[job_id]["status"] = "failed"
-            job_store[job_id]["error"] = str(exc)
+            job_store[job_id]["error"] = "Prediction job failed."
         finally:
             job_store[job_id]["updated_at"] = _now_iso()
 
@@ -190,6 +215,7 @@ async def predict_job(
 
 @app.get("/predict/jobs/{job_id}")
 def predict_job_status(job_id: str) -> dict:
+    _cleanup_expired_jobs()
     job = job_store.get(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found.")
