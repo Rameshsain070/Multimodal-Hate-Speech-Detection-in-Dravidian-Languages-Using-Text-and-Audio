@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -8,10 +10,13 @@ from .model_service import MultimodalService
 
 app = FastAPI(title="Dravidian Multimodal Hate Speech API", version="1.0.0")
 service = MultimodalService()
+MAX_AUDIO_BYTES = int(os.getenv("MAX_AUDIO_BYTES", str(10 * 1024 * 1024)))
+allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "http://127.0.0.1:5500,http://localhost:5500")
+allowed_origins = [origin.strip() for origin in allowed_origins_raw.split(",") if origin.strip()]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,6 +41,11 @@ async def predict(
         audio_bytes = await audio.read() if audio is not None else None
         if audio_bytes == b"":
             audio_bytes = None
+        if audio_bytes is not None and len(audio_bytes) > MAX_AUDIO_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Audio file too large. Max allowed size is {MAX_AUDIO_BYTES} bytes.",
+            )
         return service.predict(language=language, text=text, audio_bytes=audio_bytes)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
